@@ -15,6 +15,21 @@ A running record of what has been built and changed. Most recent at the top.
 
 ## Changelog
 
+### 2026-06-12 — Worldwide leaderboard + richer login
+- **Login now collects first name, age, class, school** (in the create/edit player form).
+- **New "Ranks" tab (🏆)** showing a global Top-100 leaderboard plus the player's own rank,
+  ranked by **Brain Points** = `level×100 + correctAnswers×5 + bestStreak×2`.
+- Public board shows **first name + class + school** (age stays private).
+- Backend: `api/leaderboard.mjs` — a Vercel Serverless Function backed by **Vercel KV**
+  (Upstash Redis) via REST, **zero npm deps**. Credentials are server-side only.
+  - Needs env vars `KV_REST_API_URL` + `KV_REST_API_TOKEN` (auto-added when a KV store is
+    connected to the Vercel project). Returns `503` until configured; UI degrades gracefully.
+  - Data: `ZSET lb:scores` (member=playerId, score=points) + `HASH lb:meta` (JSON snapshot).
+  - Server-side input validation/clamping on all fields.
+- Scores are pushed best-effort on launch, after each quiz round, on profile create/edit,
+  and when opening the Ranks tab — all wrapped in try/catch so **offline play is unaffected**.
+- Service worker: `/api/*` is always network (never cached); cache bumped to `v2`.
+
 ### 2026-06-12 — Install prompt is now a one-time centered popup
 - Replaced the fixed install bar/card entirely with a **centered modal popup** (reuses the
   app's modal system, so it floats above everything and never affects layout → no overlap).

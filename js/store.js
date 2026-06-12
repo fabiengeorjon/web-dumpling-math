@@ -16,12 +16,16 @@ function makeSkillLevels() {
   return Object.fromEntries(SKILLS.map(s => [s.id, 1]));
 }
 
-export function newProfile(name, avatar, color) {
+export function newProfile(name, avatar, color, meta = {}) {
   return {
     id: 'p_' + Math.random().toString(36).slice(2, 9),
     name: name || 'Player',
     avatar: avatar || '🥟',
     color: color || '#ffd9e3',
+    // leaderboard identity
+    age: meta.age || '',
+    klass: meta.klass || '',
+    school: meta.school || '',
     level: 1,
     xp: 0,
     coins: 50,
@@ -73,8 +77,8 @@ export const getProfiles = () => state.profiles;
 export const getActive = () => state.profiles.find(p => p.id === state.activeId) || null;
 export const setActive = (id) => { state.activeId = id; saveNow(); };
 
-export function addProfile(name, avatar, color) {
-  const p = newProfile(name, avatar, color);
+export function addProfile(name, avatar, color, meta = {}) {
+  const p = newProfile(name, avatar, color, meta);
   state.profiles.push(p);
   state.activeId = p.id;
   saveNow();

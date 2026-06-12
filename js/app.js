@@ -12,6 +12,7 @@ import { dumplingSVG } from './dumpling.js';
 import { Sandbox } from './physics.js';
 import { initFx, confetti, bubbles, starPop } from './particles.js';
 import { sfx, physicsSound } from './sound.js';
+import { submitScore, fetchTop, brainPoints, firstName } from './leaderboard.js';
 
 const app = document.getElementById('app');
 
@@ -103,9 +104,24 @@ function profileForm(existing) {
     <div class="modal">
       <h3>${existing ? 'Edit Player' : 'New Player'}</h3>
       <div class="form-field">
-        <label>Name</label>
+        <label>First name</label>
         <input id="pf-name" maxlength="14" placeholder="e.g. Lucas" value="${existing ? escapeHtml(existing.name) : ''}" />
       </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Age</label>
+          <input id="pf-age" type="number" min="3" max="18" inputmode="numeric" placeholder="8" value="${existing?.age ?? ''}" />
+        </div>
+        <div class="form-field">
+          <label>Class</label>
+          <input id="pf-class" maxlength="20" placeholder="e.g. 3B" value="${existing ? escapeHtml(existing.klass || '') : ''}" />
+        </div>
+      </div>
+      <div class="form-field">
+        <label>School</label>
+        <input id="pf-school" maxlength="60" placeholder="e.g. Sunrise Primary" value="${existing ? escapeHtml(existing.school || '') : ''}" />
+      </div>
+      <p class="form-note">🏆 First name, class & school appear on the worldwide leaderboard.</p>
       <div class="form-field">
         <label>Choose an avatar</label>
         <div class="avatar-picker">${AVATARS.map(a => `<button class="opt ${a === avatar ? 'sel' : ''}" data-a="${a}">${a}</button>`).join('')}</div>
@@ -128,8 +144,16 @@ function profileForm(existing) {
   }));
   $('#pf-save', modal).addEventListener('click', () => {
     const name = $('#pf-name', modal).value.trim() || 'Player';
-    if (existing) { store.updateProfile(existing.id, { name, avatar, color }); }
-    else { store.addProfile(name, avatar, color); confetti(); }
+    const meta = {
+      age: $('#pf-age', modal).value.trim(),
+      klass: $('#pf-class', modal).value.trim(),
+      school: $('#pf-school', modal).value.trim(),
+    };
+    let saved;
+    if (existing) { store.updateProfile(existing.id, { name, avatar, color, ...meta }); saved = store.getProfiles().find(x => x.id === existing.id); }
+    else { saved = store.addProfile(name, avatar, color, meta); confetti(); }
+    // best-effort push to the global board (so the new identity shows up)
+    submitScore(saved, { force: true });
     closeModal();
     if (existing) renderLobby(); else { view.screen = 'main'; view.tab = 'home'; render(); }
   });
@@ -158,6 +182,7 @@ function renderMain() {
   else if (view.tab === 'collection') renderCollection(screen, p);
   else if (view.tab === 'market') renderMarket(screen, p);
   else if (view.tab === 'sandbox') renderSandbox(screen, p);
+  else if (view.tab === 'ranks') renderLeaderboard(screen, p);
 
   app.appendChild(tabbar());
 }
@@ -182,6 +207,7 @@ function tabbar() {
     { id: 'collection', ic: '🥟', label: 'House' },
     { id: 'market', ic: '🛒', label: 'Market' },
     { id: 'sandbox', ic: '🪀', label: 'Sandbox' },
+    { id: 'ranks', ic: '🏆', label: 'Ranks' },
   ];
   const bar = h(`<div class="tabbar"></div>`);
   tabs.forEach(t => {
@@ -353,6 +379,7 @@ function nextQuestion() {
 
 function finishQuiz() {
   const p = store.getActive();
+  submitScore(p, { force: true }); // update the global board after each round
   const stars = Math.round((quiz.correctCount / QUIZ_LEN) * 3);
   const modal = h(`
     <div class="modal" style="text-align:center">
@@ -640,6 +667,80 @@ function respawn(p) {
   });
 }
 
+/* ============================================================
+   LEADERBOARD (worldwide ranking)
+   ============================================================ */
+function renderLeaderboard(screen, p) {
+  const body = h(`<div class="scroll-area"></div>`);
+  body.appendChild(h(`
+    <div class="screen-head" style="display:flex;align-items:center;gap:10px">
+      <div style="flex:1"><h2>🏆 World Ranks</h2><p>Top dumpling mathematicians on Earth</p></div>
+      <button class="btn btn-ghost btn-tiny" id="lb-refresh">↻</button>
+    </div>`));
+
+  const youCard = h(`
+    <div class="you-card">
+      <div class="you-rank" id="lb-you-rank">—</div>
+      <div class="face" style="background:${p.color}">${p.avatar}</div>
+      <div class="you-meta">
+        <b>${escapeHtml(firstName(p.name))} (You)</b>
+        <small>${escapeHtml(p.klass || '—')}${p.school ? ' · ' + escapeHtml(p.school) : ''}</small>
+      </div>
+      <div class="you-score"><b>${brainPoints(p)}</b><small>pts</small></div>
+    </div>`);
+  body.appendChild(youCard);
+
+  const listWrap = h(`<div class="lb-list" id="lb-list"><div class="empty-note">Loading the world rankings… 🌍</div></div>`);
+  body.appendChild(listWrap);
+  screen.appendChild(body);
+
+  $('#lb-refresh', body).addEventListener('click', () => { sfx.tap(); loadBoard(p, listWrap, youCard); });
+  loadBoard(p, listWrap, youCard);
+}
+
+async function loadBoard(p, listWrap, youCard) {
+  // Push our latest score first so the player appears / updates, then read back.
+  await submitScore(p, { force: true });
+  let data;
+  try {
+    data = await fetchTop(p.id);
+  } catch (err) {
+    listWrap.innerHTML = '';
+    const msg = err.status === 503
+      ? `🌧️ The world leaderboard isn't switched on yet.<br><small>Ask a grown-up to connect a Vercel KV store (see README).</small>`
+      : `📡 Couldn't reach the leaderboard.<br><small>Check your internet and tap ↻ to retry. Your game still works offline!</small>`;
+    listWrap.appendChild(h(`<div class="empty-note">${msg}</div>`));
+    return;
+  }
+
+  // update "you" card
+  if (data.you) {
+    $('#lb-you-rank', youCard).textContent = data.you.rank ? `#${data.you.rank}` : '—';
+    if (data.you.totalPlayers) youCard.querySelector('.you-score small').textContent = `pts · of ${data.you.totalPlayers}`;
+  }
+
+  listWrap.innerHTML = '';
+  if (!data.entries.length) {
+    listWrap.appendChild(h(`<div class="empty-note">No players yet — be the very first on the board! 🥇</div>`));
+    return;
+  }
+
+  const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+  data.entries.forEach(e => {
+    const mine = e.id === p.id;
+    const row = h(`
+      <div class="lb-row ${mine ? 'mine' : ''} ${e.rank <= 3 ? 'top' : ''}">
+        <div class="lb-rank">${medals[e.rank] || e.rank}</div>
+        <div class="lb-info">
+          <b>${escapeHtml(e.name)}${mine ? ' (You)' : ''}</b>
+          <small>${e.klass ? escapeHtml(e.klass) : ''}${e.klass && e.school ? ' · ' : ''}${e.school ? escapeHtml(e.school) : ''}</small>
+        </div>
+        <div class="lb-pts"><b>${e.score}</b><small>Lv ${e.level}</small></div>
+      </div>`);
+    listWrap.appendChild(row);
+  });
+}
+
 function hideHintSoon() {
   setTimeout(() => { const hint = $('#sb-hint'); if (hint) hint.style.opacity = '0'; }, 3500);
 }
@@ -720,8 +821,11 @@ function boot() {
   registerSW();
   setupInstall();
   const profiles = store.getProfiles();
-  view.screen = profiles.length && store.getActive() ? 'main' : 'lobby';
+  const active = store.getActive();
+  view.screen = profiles.length && active ? 'main' : 'lobby';
   render();
+  // sync the active player's score to the global board on launch (best effort)
+  if (active) submitScore(active, { force: true });
 }
 
 boot();

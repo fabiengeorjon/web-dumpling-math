@@ -5,7 +5,7 @@
    cache-first for everything else.
    ============================================================ */
 
-const CACHE = 'dumpling-math-v1';
+const CACHE = 'dumpling-math-v2';
 
 const ASSETS = [
   './',
@@ -20,6 +20,7 @@ const ASSETS = [
   './js/physics.js',
   './js/particles.js',
   './js/sound.js',
+  './js/leaderboard.js',
   './icons/icon.svg',
   './icons/icon-maskable.svg',
 ];
@@ -40,8 +41,15 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET') return;
   const url = new URL(req.url);
+
+  // Leaderboard API: always go to the network, never cache (and let
+  // non-GET methods like POST pass straight through).
+  if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) {
+    return; // default browser handling (network)
+  }
+
+  if (req.method !== 'GET') return;
 
   // Cross-origin (e.g. Google Fonts): cache opportunistically, fall back to network.
   if (url.origin !== self.location.origin) {
