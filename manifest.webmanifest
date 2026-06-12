@@ -1,0 +1,26 @@
+{
+  "name": "Dumpling Mathematics",
+  "short_name": "Dumpling Math",
+  "description": "A warm, offline-first math adventure with a squishy dumpling physics playground for kids.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff4f7",
+  "theme_color": "#ffd9e3",
+  "categories": ["education", "games", "kids"],
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

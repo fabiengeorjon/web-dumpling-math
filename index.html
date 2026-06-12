@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#ffd9e3" />
+  <meta name="description" content="Dumpling Mathematics — a warm, offline math adventure with a squishy dumpling physics playground." />
+  <title>Dumpling Mathematics 🥟</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Soft floating background blobs -->
+  <div class="bg-decor" aria-hidden="true">
+    <span class="blob blob-1"></span>
+    <span class="blob blob-2"></span>
+    <span class="blob blob-3"></span>
+    <span class="blob blob-4"></span>
+  </div>
+
+  <!-- SVG filter defs for gooey / squishy rendering -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <filter id="gooey">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+        <feColorMatrix in="blur" mode="matrix"
+          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10" result="goo" />
+        <feBlend in="SourceGraphic" in2="goo" />
+      </filter>
+    </defs>
+  </svg>
+
+  <main id="app" class="app"></main>
+
+  <!-- Floating particle / confetti layer -->
+  <canvas id="fx-layer" class="fx-layer" aria-hidden="true"></canvas>
+
+  <!-- Install prompt toast -->
+  <div id="install-toast" class="install-toast" hidden>
+    <span class="install-emoji">📲</span>
+    <div class="install-text">
+      <strong>Install Dumpling Math</strong>
+      <small>Play offline, anytime!</small>
+    </div>
+    <button id="install-btn" class="btn btn-tiny">Install</button>
+    <button id="install-dismiss" class="btn btn-ghost btn-tiny" aria-label="Dismiss">✕</button>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
