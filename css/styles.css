@@ -290,6 +290,26 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @keyframes shake { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-8px);} 40%{transform:translateX(8px);} 60%{transform:translateX(-6px);} 80%{transform:translateX(6px);} }
 @keyframes pop-in { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+.replay-pill { display:inline-block; background: var(--c-lilac); color:#fff; font-size:.62rem; font-weight:800; padding:2px 8px; border-radius: var(--radius-pill); vertical-align: middle; margin-left: 4px; letter-spacing: .02em; }
+
+/* ---------- level select ---------- */
+.level-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.lvl-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 12px 6px; border-radius: var(--radius-md);
+  background: var(--c-surface-soft); box-shadow: var(--shadow-soft);
+  transition: transform .14s var(--ease-spring); text-align: center;
+}
+.lvl-chip:active { transform: scale(.93); }
+.lvl-chip b { font-family: var(--font-display); font-size: .9rem; }
+.lvl-chip .lvl-stars { font-size: .62rem; color: #ffb700; letter-spacing: -1px; }
+.lvl-chip small { font-size: .6rem; font-weight: 800; color: var(--c-ink-soft); }
+.lvl-chip.current { background: linear-gradient(180deg, var(--c-mint), var(--c-mint-deep)); color: #fff; box-shadow: var(--shadow-pop); }
+.lvl-chip.current small, .lvl-chip.current .lvl-stars { color: #fff; }
+.lvl-chip.done { opacity: .92; }
+.lvl-chip.done b { color: var(--c-lilac-deep); }
+.lvl-chip.locked { opacity: .45; filter: grayscale(.5); }
+
 .quiz-foot { margin-top: auto; display: flex; gap: 12px; }
 .quiz-foot .btn { flex: 1; }
 

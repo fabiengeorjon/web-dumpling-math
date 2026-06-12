@@ -15,6 +15,16 @@ A running record of what has been built and changed. Most recent at the top.
 
 ## Changelog
 
+### 2026-06-12 — Replayable levels with reduced replay rewards
+- Tapping a skill now opens a **Level Select** (Levels 1–6): the highest unlocked level is
+  the **Challenge** (full coins/XP); already-beaten levels can be **replayed for less**
+  (40% coins, 50% XP) so practice stays available without being the fastest way to earn.
+- Clearing the challenge level with **≥6/8 correct** unlocks the next level (with a
+  celebration + "Next Level →" button). Higher levels are locked until unlocked.
+- Quiz header shows the level and a 🔁 Replay pill; the results screen shows unlock progress
+  or a replay reminder. Difficulty is now an explicit per-level choice (replaces the old
+  silent auto-adapt), via `generateQuestion(skill, profile, tierOverride)`.
+
 ### 2026-06-12 — Worldwide leaderboard + richer login
 - **Login now collects first name, age, class, school** (in the create/edit player form).
 - **New "Ranks" tab (🏆)** showing a global Top-100 leaderboard plus the player's own rank,

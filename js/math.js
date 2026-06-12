@@ -81,9 +81,10 @@ function shuffle(arr) {
   return arr;
 }
 
-/** Generate a question for a given skill + profile. */
-export function generateQuestion(skillId, profile) {
-  const t = tier(profile.skillLevels[skillId] || 1);
+/** Generate a question for a given skill + profile.
+   `tierOverride` forces a specific difficulty (used when replaying a level). */
+export function generateQuestion(skillId, profile, tierOverride) {
+  const t = tier(tierOverride != null ? tierOverride : (profile.skillLevels[skillId] || 1));
   const g = generators[skillId](t);
   return {
     skill: skillId,

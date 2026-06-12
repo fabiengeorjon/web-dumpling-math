@@ -7,7 +7,7 @@ import {
   SKILLS, SKILL_BY_ID, DUMPLINGS, DUMPLING_BY_ID, RARITIES, RARITY_ORDER,
   SNACKS, TOYS, TOY_BY_ID, SNACK_BY_ID, AVATARS, AVATAR_COLORS, STEAM_COST,
 } from './data.js';
-import { generateQuestion, adaptDifficulty, buildHint } from './math.js';
+import { generateQuestion, buildHint } from './math.js';
 import { dumplingSVG } from './dumpling.js';
 import { Sandbox } from './physics.js';
 import { initFx, confetti, bubbles, starPop } from './particles.js';
@@ -254,10 +254,10 @@ function renderHome(screen, p) {
         <div class="sk-emoji">${s.emoji}</div>
         <div>
           <div class="sk-name">${s.name}</div>
-          <div class="sk-lvl">Difficulty ${'★'.repeat(lvl)}${'☆'.repeat(6 - lvl)}</div>
+          <div class="sk-lvl">Level ${lvl} / ${MAX_TIER} ${'★'.repeat(lvl)}${'☆'.repeat(MAX_TIER - lvl)}</div>
         </div>
       </div>`);
-    card.addEventListener('click', () => { sfx.tap(); startQuiz(s.id); });
+    card.addEventListener('click', () => { sfx.tap(); levelSelect(s.id); });
     grid.appendChild(card);
   });
   body.appendChild(grid);
@@ -265,20 +265,75 @@ function renderHome(screen, p) {
 }
 
 /* ============================================================
+   LEVEL SELECT — pick a level to play or replay.
+   The current (highest unlocked) level pays full coins; already
+   beaten levels can be replayed for reduced coins to stay fun
+   without being the fastest way to earn.
+   ============================================================ */
+function levelSelect(skillId) {
+  const p = store.getActive();
+  const s = SKILL_BY_ID[skillId];
+  const cur = p.skillLevels[skillId] || 1; // highest unlocked = current challenge
+
+  const chips = [];
+  for (let t = 1; t <= MAX_TIER; t++) {
+    let state, sub, payload;
+    if (t < cur) { state = 'done'; sub = `Replay · ${Math.round(REPLAY_COIN_MULT * 100)}% 🪙`; }
+    else if (t === cur) { state = 'current'; sub = `Challenge · full 🪙`; }
+    else { state = 'locked'; sub = `🔒 Locked`; }
+    chips.push(`
+      <button class="lvl-chip ${state}" data-t="${t}" ${state === 'locked' ? 'disabled' : ''}>
+        <b>Level ${t}</b>
+        <span class="lvl-stars">${'★'.repeat(t)}${'☆'.repeat(MAX_TIER - t)}</span>
+        <small>${sub}</small>
+      </button>`);
+  }
+
+  const modal = h(`
+    <div class="modal">
+      <h3>${s.emoji} ${s.name}</h3>
+      <p style="font-weight:700;color:var(--c-ink-soft);margin:2px 0 12px">Beat your current level to unlock the next. Replays are easier coins — chase the challenge for the big rewards! 🏆</p>
+      <div class="level-grid">${chips.join('')}</div>
+      <div class="modal-actions"><button class="btn btn-ghost btn-block" id="ls-close">Cancel</button></div>
+    </div>`);
+
+  $$('.lvl-chip', modal).forEach(b => {
+    if (b.disabled) return;
+    b.addEventListener('click', () => {
+      const t = parseInt(b.dataset.t, 10);
+      sfx.tap();
+      closeModal();
+      startQuiz(skillId, t, t < cur);
+    });
+  });
+  $('#ls-close', modal).addEventListener('click', () => { sfx.tap(); closeModal(); });
+  openModal(modal);
+}
+
+/* ============================================================
    QUIZ
    ============================================================ */
 const QUIZ_LEN = 8;
+const MAX_TIER = 6;
+const REPLAY_COIN_MULT = 0.4;   // replays pay less so the challenge level stays the best earner
+const REPLAY_XP_MULT = 0.5;
+const UNLOCK_THRESHOLD = 6;     // correct answers (out of QUIZ_LEN) needed to clear a challenge
 let quiz = null;
 
-function startQuiz(skillId) {
-  quiz = { skillId, index: 0, correctCount: 0, coinsEarned: 0, current: null, answered: false };
+function startQuiz(skillId, tier, isReplay = false) {
+  const p = store.getActive();
+  const t = tier != null ? tier : (p.skillLevels[skillId] || 1);
+  quiz = {
+    skillId, tier: t, isReplay,
+    index: 0, correctCount: 0, coinsEarned: 0, current: null, answered: false,
+  };
   view.screen = 'quiz';
   render();
 }
 
 function renderQuiz() {
   const p = store.getActive();
-  if (!quiz.current) quiz.current = generateQuestion(quiz.skillId, p);
+  if (!quiz.current) quiz.current = generateQuestion(quiz.skillId, p, quiz.tier);
   const q = quiz.current;
   const skill = SKILL_BY_ID[quiz.skillId];
   const progPct = (quiz.index / QUIZ_LEN) * 100;
@@ -292,7 +347,7 @@ function renderQuiz() {
         <div class="streak-flame">🔥 ${p.streak}</div>
       </div>
       <div class="q-card">
-        <div class="q-skill-tag">${skill.emoji} ${q.sub || skill.name}</div>
+        <div class="q-skill-tag">${skill.emoji} ${q.sub || skill.name} · Lv ${quiz.tier}${quiz.isReplay ? ' <span class="replay-pill">🔁 Replay</span>' : ''}</div>
         <div class="q-text">${q.text}${q.sub ? '' : ' = ?'}</div>
         <div class="q-visual"></div>
       </div>
@@ -340,7 +395,6 @@ function answer(btn, value, node) {
   const correct = value === q.answer;
 
   store.recordAnswer(p, correct);
-  const newSkillLvl = adaptDifficulty(p, quiz.skillId, correct, p.streak);
 
   $$('.ans-btn', node).forEach(b => {
     const v = parseInt(b.dataset.val, 10);
@@ -352,10 +406,12 @@ function answer(btn, value, node) {
 
   if (correct) {
     quiz.correctCount++;
-    const reward = 6 + q.tier * 2 + Math.min(p.streak, 10);
+    const coinMul = quiz.isReplay ? REPLAY_COIN_MULT : 1;
+    const xpMul = quiz.isReplay ? REPLAY_XP_MULT : 1;
+    const reward = Math.max(1, Math.round((6 + q.tier * 2 + Math.min(p.streak, 10)) * coinMul));
     quiz.coinsEarned += reward;
     store.addCoins(p, reward);
-    const res = store.grantXp(p, 8 + q.tier * 3);
+    const res = store.grantXp(p, Math.max(1, Math.round((8 + q.tier * 3) * xpMul)));
     sfx.correct();
     const rect = btn.getBoundingClientRect();
     confetti(rect.left + rect.width / 2, rect.top + rect.height / 2, 60);
@@ -379,8 +435,27 @@ function nextQuestion() {
 
 function finishQuiz() {
   const p = store.getActive();
-  submitScore(p, { force: true }); // update the global board after each round
   const stars = Math.round((quiz.correctCount / QUIZ_LEN) * 3);
+
+  // Clearing the *challenge* level (not a replay) unlocks the next one.
+  const wasChallenge = !quiz.isReplay && quiz.tier === (p.skillLevels[quiz.skillId] || 1);
+  let unlocked = false;
+  if (wasChallenge && quiz.correctCount >= UNLOCK_THRESHOLD && quiz.tier < MAX_TIER) {
+    p.skillLevels[quiz.skillId] = quiz.tier + 1;
+    store.save();
+    unlocked = true;
+  }
+
+  submitScore(p, { force: true }); // update the global board after each round
+
+  const banner = unlocked
+    ? `<p style="font-weight:800;color:var(--c-lilac-deep);margin-top:6px">🔓 Level ${quiz.tier + 1} unlocked!</p>`
+    : (quiz.isReplay
+      ? `<p style="font-weight:700;color:var(--c-ink-soft);margin-top:4px">🔁 Replay — fewer coins. Try the challenge level for full rewards!</p>`
+      : (wasChallenge && quiz.tier < MAX_TIER
+        ? `<p style="font-weight:700;color:var(--c-ink-soft);margin-top:4px">Get ${UNLOCK_THRESHOLD}/${QUIZ_LEN} to unlock Level ${quiz.tier + 1}!</p>`
+        : ''));
+
   const modal = h(`
     <div class="modal" style="text-align:center">
       <div style="font-size:60px">${quiz.correctCount >= QUIZ_LEN * 0.7 ? '🏆' : '🌱'}</div>
@@ -388,14 +463,25 @@ function finishQuiz() {
       <div style="font-size:30px;margin:8px 0">${'⭐'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
       <p style="font-weight:700;color:var(--c-ink-soft)">You got <b style="color:var(--c-mint-deep)">${quiz.correctCount}/${QUIZ_LEN}</b> correct!</p>
       <div class="price-tag" style="margin:6px auto 0">${coinDot} +${quiz.coinsEarned} coins</div>
+      ${banner}
       <div class="modal-actions">
         <button class="btn btn-ghost" id="fq-home">Home</button>
+        ${unlocked ? `<button class="btn btn-mint" id="fq-next">Next Level →</button>` : ''}
         <button class="btn btn-primary" id="fq-again">Play Again</button>
       </div>
     </div>`);
+  const skill = quiz.skillId, tier = quiz.tier;
   $('#fq-home', modal).addEventListener('click', () => { sfx.tap(); closeModal(); quiz = null; view.screen = 'main'; render(); });
-  $('#fq-again', modal).addEventListener('click', () => { sfx.tap(); const sk = quiz.skillId; closeModal(); startQuiz(sk); });
+  $('#fq-again', modal).addEventListener('click', () => {
+    sfx.tap(); closeModal();
+    // recompute replay status (the challenge level may have just moved up)
+    const replay = tier < (store.getActive().skillLevels[skill] || 1);
+    startQuiz(skill, tier, replay);
+  });
+  const nextBtn = $('#fq-next', modal);
+  if (nextBtn) nextBtn.addEventListener('click', () => { sfx.tap(); closeModal(); startQuiz(skill, tier + 1, false); });
   openModal(modal);
+  if (unlocked) { bubbles(); sfx.levelUp(); }
   if (quiz.correctCount >= QUIZ_LEN * 0.7) confetti();
 }
 
