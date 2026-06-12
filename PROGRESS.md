@@ -15,6 +15,13 @@ A running record of what has been built and changed. Most recent at the top.
 
 ## Changelog
 
+### 2026-06-12 — Install prompt is now a one-time centered popup
+- Replaced the fixed install bar/card entirely with a **centered modal popup** (reuses the
+  app's modal system, so it floats above everything and never affects layout → no overlap).
+- Shows **only once** (tracked via `localStorage` key `dumpling-math:install-shown`), 1.5s
+  after launch, and only when on the main screen with no other modal open.
+- Closable three ways: **Maybe later**, the **Install** button, or tapping the backdrop.
+
 ### 2026-06-12 — Install prompt moved to a bottom action bar (no overlap)
 - Install prompt is now a **full-width bar pinned to the very bottom**, below the menu.
 - Added `body.has-install` which applies bottom padding to the app shell, lifting the

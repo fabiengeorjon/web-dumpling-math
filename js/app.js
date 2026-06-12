@@ -669,33 +669,47 @@ function registerSW() {
 }
 
 let deferredInstall = null;
-const INSTALL_DISMISS_KEY = 'dumpling-math:install-dismissed';
-function setupInstall() {
-  const toastEl = $('#install-toast');
-  const hide = () => { if (toastEl) toastEl.hidden = true; document.body.classList.remove('has-install'); };
-  const show = () => { if (toastEl) { toastEl.hidden = false; document.body.classList.add('has-install'); } };
-  const dismissed = () => { try { return localStorage.getItem(INSTALL_DISMISS_KEY) === '1'; } catch { return false; } };
+const INSTALL_SHOWN_KEY = 'dumpling-math:install-shown';
 
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredInstall = e;
-    if (!dismissed()) show();
-  });
-  $('#install-btn')?.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    if (!deferredInstall) { hide(); return; }
+function alreadyShownInstall() { try { return localStorage.getItem(INSTALL_SHOWN_KEY) === '1'; } catch { return false; } }
+function markInstallShown() { try { localStorage.setItem(INSTALL_SHOWN_KEY, '1'); } catch {} }
+
+function showInstallModal() {
+  if (alreadyShownInstall()) return;
+  markInstallShown();
+  const modal = h(`
+    <div class="modal install-modal">
+      <span class="install-emoji">📲</span>
+      <h3>Install Dumpling Math</h3>
+      <p>Add it to your home screen and play offline, anytime — no internet needed!</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="inst-later">Maybe later</button>
+        <button class="btn btn-primary" id="inst-go">Install 🎉</button>
+      </div>
+    </div>`);
+  $('#inst-later', modal).addEventListener('click', () => { sfx.tap(); closeModal(); });
+  $('#inst-go', modal).addEventListener('click', async () => {
+    sfx.tap();
+    if (!deferredInstall) { closeModal(); return; }
+    closeModal();
     deferredInstall.prompt();
     await deferredInstall.userChoice;
     deferredInstall = null;
-    hide();
   });
-  // Dismiss: close the card and remember the choice so it stays closed.
-  $('#install-dismiss')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    hide();
-    try { localStorage.setItem(INSTALL_DISMISS_KEY, '1'); } catch {}
+  openModal(modal); // backdrop tap also closes it
+}
+
+function setupInstall() {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstall = e;
+    // Show the one-time popup a moment after launch (only on the main screen,
+    // never interrupting a quiz or another modal).
+    setTimeout(() => {
+      if (!alreadyShownInstall() && view.screen === 'main' && !modalEl) showInstallModal();
+    }, 1500);
   });
-  window.addEventListener('appinstalled', () => { hide(); toast('Installed! Play offline anytime 🥟'); });
+  window.addEventListener('appinstalled', () => { markInstallShown(); toast('Installed! Play offline anytime 🥟'); });
 }
 
 /* ============================================================
