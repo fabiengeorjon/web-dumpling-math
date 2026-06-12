@@ -15,6 +15,15 @@ A running record of what has been built and changed. Most recent at the top.
 
 ## Changelog
 
+### 2026-06-12 — Best score per level + ★★★ Mastery badges
+- Tracks **best score** and a **mastered** flag (perfect 8/8) per skill per level in
+  `profile.levelStats` (`store.recordLevelResult` / `getLevelStat` / `masteredCount`).
+- **Level Select** chips now show each level's best (`Best 6/8` / `New!`) and a gold
+  **👑 ★★★** badge + crown corner once mastered.
+- **Home** skill cards show a **👑 n/6** mastered tally.
+- Acing a level the first time grants a **+30 🪙 mastery bonus**, a "Mastered!" results
+  screen, and a double confetti + level-up celebration. New personal bests are called out too.
+
 ### 2026-06-12 — Replayable levels with reduced replay rewards
 - Tapping a skill now opens a **Level Select** (Levels 1–6): the highest unlocked level is
   the **Challenge** (full coins/XP); already-beaten levels can be **replayed for less**

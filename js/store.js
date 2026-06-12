@@ -34,6 +34,8 @@ export function newProfile(name, avatar, color, meta = {}) {
     totalCorrect: 0,
     totalAnswered: 0,
     skillLevels: makeSkillLevels(),
+    // per-level results: { [skillId]: { [tier]: { best, mastered } } }
+    levelStats: {},
     // unlocked dumplings: { [id]: { size: 1 } }
     dumplings: { [STARTER_DUMPLING]: { size: 1 } },
     // owned snacks: { [id]: count }
@@ -138,6 +140,32 @@ export function useSnack(p, id) {
   return false;
 }
 export function addToy(p, id, n = 1) { p.toys[id] = (p.toys[id] || 0) + n; save(); }
+
+/* ---------- Per-level best scores & mastery ---------- */
+export function getLevelStat(p, skillId, tier) {
+  return (p.levelStats?.[skillId]?.[tier]) || { best: 0, mastered: false };
+}
+
+/** Record a finished round for a level. Returns { best, mastered, newBest, justMastered }. */
+export function recordLevelResult(p, skillId, tier, correct, total) {
+  if (!p.levelStats) p.levelStats = {};
+  if (!p.levelStats[skillId]) p.levelStats[skillId] = {};
+  const cur = p.levelStats[skillId][tier] || { best: 0, mastered: false };
+  const newBest = correct > cur.best;
+  const justMastered = correct >= total && !cur.mastered;
+  cur.best = Math.max(cur.best, correct);
+  if (correct >= total) cur.mastered = true;
+  p.levelStats[skillId][tier] = cur;
+  save();
+  return { best: cur.best, mastered: cur.mastered, newBest, justMastered };
+}
+
+/** Count mastered levels for a skill (for the Home badge). */
+export function masteredCount(p, skillId) {
+  const s = p.levelStats?.[skillId];
+  if (!s) return 0;
+  return Object.values(s).filter(x => x.mastered).length;
+}
 
 export function recordAnswer(p, correct) {
   p.totalAnswered++;

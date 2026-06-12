@@ -249,8 +249,10 @@ function renderHome(screen, p) {
   const cls = { add: 'add', sub: 'sub', mul: 'mul', div: 'div', alg: 'alg' };
   SKILLS.forEach(s => {
     const lvl = p.skillLevels[s.id] || 1;
+    const mastered = store.masteredCount(p, s.id);
     const card = h(`
       <div class="skill-card ${cls[s.id]}">
+        ${mastered ? `<span class="sk-master">👑 ${mastered}/${MAX_TIER}</span>` : ''}
         <div class="sk-emoji">${s.emoji}</div>
         <div>
           <div class="sk-name">${s.name}</div>
@@ -277,14 +279,21 @@ function levelSelect(skillId) {
 
   const chips = [];
   for (let t = 1; t <= MAX_TIER; t++) {
-    let state, sub, payload;
+    const stat = store.getLevelStat(p, skillId, t);
+    let state, sub;
     if (t < cur) { state = 'done'; sub = `Replay · ${Math.round(REPLAY_COIN_MULT * 100)}% 🪙`; }
     else if (t === cur) { state = 'current'; sub = `Challenge · full 🪙`; }
     else { state = 'locked'; sub = `🔒 Locked`; }
+    const bestLine = state === 'locked'
+      ? ''
+      : (stat.mastered ? `<small class="lvl-best gold">👑 ★★★</small>`
+        : `<small class="lvl-best">${stat.best > 0 ? `Best ${stat.best}/${QUIZ_LEN}` : 'New!'}</small>`);
     chips.push(`
-      <button class="lvl-chip ${state}" data-t="${t}" ${state === 'locked' ? 'disabled' : ''}>
+      <button class="lvl-chip ${state} ${stat.mastered ? 'mastered' : ''}" data-t="${t}" ${state === 'locked' ? 'disabled' : ''}>
+        ${stat.mastered ? '<span class="master-crown">👑</span>' : ''}
         <b>Level ${t}</b>
         <span class="lvl-stars">${'★'.repeat(t)}${'☆'.repeat(MAX_TIER - t)}</span>
+        ${bestLine}
         <small>${sub}</small>
       </button>`);
   }
@@ -433,9 +442,15 @@ function nextQuestion() {
   renderQuiz();
 }
 
+const MASTER_BONUS = 30;
+
 function finishQuiz() {
   const p = store.getActive();
   const stars = Math.round((quiz.correctCount / QUIZ_LEN) * 3);
+
+  // Record best score & mastery for this level.
+  const lvlRes = store.recordLevelResult(p, quiz.skillId, quiz.tier, quiz.correctCount, QUIZ_LEN);
+  if (lvlRes.justMastered) { store.addCoins(p, MASTER_BONUS); quiz.coinsEarned += MASTER_BONUS; }
 
   // Clearing the *challenge* level (not a replay) unlocks the next one.
   const wasChallenge = !quiz.isReplay && quiz.tier === (p.skillLevels[quiz.skillId] || 1);
@@ -448,22 +463,27 @@ function finishQuiz() {
 
   submitScore(p, { force: true }); // update the global board after each round
 
-  const banner = unlocked
-    ? `<p style="font-weight:800;color:var(--c-lilac-deep);margin-top:6px">🔓 Level ${quiz.tier + 1} unlocked!</p>`
-    : (quiz.isReplay
-      ? `<p style="font-weight:700;color:var(--c-ink-soft);margin-top:4px">🔁 Replay — fewer coins. Try the challenge level for full rewards!</p>`
-      : (wasChallenge && quiz.tier < MAX_TIER
-        ? `<p style="font-weight:700;color:var(--c-ink-soft);margin-top:4px">Get ${UNLOCK_THRESHOLD}/${QUIZ_LEN} to unlock Level ${quiz.tier + 1}!</p>`
-        : ''));
+  const banner = lvlRes.justMastered
+    ? `<p style="font-weight:800;color:#d9920a;margin-top:6px">👑 Level Mastered! ★★★ <span style="white-space:nowrap">+${MASTER_BONUS} 🪙 bonus</span></p>`
+    : unlocked
+      ? `<p style="font-weight:800;color:var(--c-lilac-deep);margin-top:6px">🔓 Level ${quiz.tier + 1} unlocked!</p>`
+      : (quiz.isReplay
+        ? `<p style="font-weight:700;color:var(--c-ink-soft);margin-top:4px">🔁 Replay — fewer coins. Try the challenge level for full rewards!</p>`
+        : (wasChallenge && quiz.tier < MAX_TIER
+          ? `<p style="font-weight:700;color:var(--c-ink-soft);margin-top:4px">Get ${UNLOCK_THRESHOLD}/${QUIZ_LEN} to unlock Level ${quiz.tier + 1}!</p>`
+          : ''));
+  const bestNote = lvlRes.newBest && !lvlRes.justMastered
+    ? `<p style="font-weight:700;color:var(--c-mint-deep);margin-top:2px">⭐ New best for Level ${quiz.tier}!</p>` : '';
 
   const modal = h(`
     <div class="modal" style="text-align:center">
-      <div style="font-size:60px">${quiz.correctCount >= QUIZ_LEN * 0.7 ? '🏆' : '🌱'}</div>
-      <h3>Round Complete!</h3>
+      <div style="font-size:60px">${lvlRes.justMastered ? '👑' : (quiz.correctCount >= QUIZ_LEN * 0.7 ? '🏆' : '🌱')}</div>
+      <h3>${lvlRes.justMastered ? 'Mastered!' : 'Round Complete!'}</h3>
       <div style="font-size:30px;margin:8px 0">${'⭐'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
       <p style="font-weight:700;color:var(--c-ink-soft)">You got <b style="color:var(--c-mint-deep)">${quiz.correctCount}/${QUIZ_LEN}</b> correct!</p>
       <div class="price-tag" style="margin:6px auto 0">${coinDot} +${quiz.coinsEarned} coins</div>
       ${banner}
+      ${bestNote}
       <div class="modal-actions">
         <button class="btn btn-ghost" id="fq-home">Home</button>
         ${unlocked ? `<button class="btn btn-mint" id="fq-next">Next Level →</button>` : ''}
@@ -481,8 +501,9 @@ function finishQuiz() {
   const nextBtn = $('#fq-next', modal);
   if (nextBtn) nextBtn.addEventListener('click', () => { sfx.tap(); closeModal(); startQuiz(skill, tier + 1, false); });
   openModal(modal);
-  if (unlocked) { bubbles(); sfx.levelUp(); }
-  if (quiz.correctCount >= QUIZ_LEN * 0.7) confetti();
+  if (lvlRes.justMastered) { confetti(); bubbles(); sfx.levelUp(); setTimeout(() => confetti(), 350); }
+  else if (unlocked) { bubbles(); sfx.levelUp(); }
+  else if (quiz.correctCount >= QUIZ_LEN * 0.7) confetti();
 }
 
 function levelUpCelebration(p) {

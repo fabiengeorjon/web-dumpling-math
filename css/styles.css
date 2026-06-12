@@ -309,6 +309,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .lvl-chip.done { opacity: .92; }
 .lvl-chip.done b { color: var(--c-lilac-deep); }
 .lvl-chip.locked { opacity: .45; filter: grayscale(.5); }
+.lvl-chip { position: relative; }
+.lvl-chip.mastered { background: linear-gradient(180deg, #fff6d8, #ffe49a); box-shadow: var(--shadow-soft), 0 0 0 2px #ffcf4d inset; }
+.lvl-chip.mastered.current { background: linear-gradient(180deg, var(--c-mint), var(--c-mint-deep)); box-shadow: var(--shadow-pop); }
+.lvl-chip .master-crown { position: absolute; top: -8px; right: -6px; font-size: 18px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.2)); animation: bao-bob 2.6s var(--ease-spring) infinite; }
+.lvl-chip .lvl-best { font-size: .6rem; font-weight: 800; color: var(--c-ink-soft); }
+.lvl-chip .lvl-best.gold { color: #d9920a; }
+.lvl-chip.current .lvl-best { color: #fff; }
+
+.sk-master {
+  position: absolute; top: 10px; right: 12px;
+  background: rgba(255,255,255,.92); color: #d9920a;
+  font-size: .66rem; font-weight: 800; padding: 3px 9px; border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-soft);
+}
 
 .quiz-foot { margin-top: auto; display: flex; gap: 12px; }
 .quiz-foot .btn { flex: 1; }
