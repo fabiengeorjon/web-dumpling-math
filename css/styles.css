@@ -421,19 +421,34 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ---------- install toast ---------- */
+/* ---------- install prompt (vertical card, right side) ---------- */
 .install-toast {
-  position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
-  z-index: 95; display: flex; align-items: center; gap: 12px;
-  background: var(--c-surface); padding: 12px 14px; border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-pop); max-width: 92%; animation: drop-in .4s var(--ease-spring);
+  position: fixed; right: 14px; top: 50%; transform: translateY(-50%);
+  z-index: 95; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
+  background: var(--c-surface); padding: 16px 16px 14px; border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop); width: 150px; animation: slide-in-right .4s var(--ease-spring);
 }
-@keyframes drop-in { from { transform: translateX(-50%) translateY(-24px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
-.install-toast .install-emoji { font-size: 26px; }
-.install-toast .install-text { line-height: 1.15; }
-.install-toast .install-text strong { font-family: var(--font-display); font-size: .9rem; display:block; }
-.install-toast .install-text small { color: var(--c-ink-soft); font-size: .72rem; }
-#install-dismiss { width: 38px; height: 38px; padding: 0; flex-shrink: 0; font-size: 1rem; border-radius: 50%; }
+@keyframes slide-in-right { from { transform: translateY(-50%) translateX(40px); opacity: 0; } to { transform: translateY(-50%) translateX(0); opacity: 1; } }
+.install-toast .install-emoji { font-size: 34px; }
+.install-toast .install-text { line-height: 1.2; }
+.install-toast .install-text strong { font-family: var(--font-display); font-size: .92rem; display:block; }
+.install-toast .install-text small { color: var(--c-ink-soft); font-size: .74rem; }
+.install-toast .btn-block { width: 100%; margin-top: 2px; }
+.install-x {
+  position: absolute; top: -10px; left: -10px;
+  width: 30px; height: 30px; border-radius: 50%; padding: 0;
+  display: grid; place-items: center; font-size: .9rem; font-weight: 800;
+  background: var(--c-surface); color: var(--c-ink-soft);
+  box-shadow: var(--shadow-soft); z-index: 2; line-height: 1;
+  transition: transform .14s var(--ease-spring);
+}
+.install-x:active { transform: scale(.85); }
+
+/* On narrow screens, dock it to the bottom-right corner instead of mid-edge */
+@media (max-width: 620px) {
+  .install-toast { top: auto; bottom: calc(96px + var(--safe-bottom)); right: 10px; transform: none; width: 140px; }
+  @keyframes slide-in-right { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+}
 
 /* ---------- reveal animation (steaming basket) ---------- */
 .reveal-stage { display: grid; place-items: center; text-align: center; padding: 10px 0; }

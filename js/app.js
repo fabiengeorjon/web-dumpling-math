@@ -669,22 +669,32 @@ function registerSW() {
 }
 
 let deferredInstall = null;
+const INSTALL_DISMISS_KEY = 'dumpling-math:install-dismissed';
 function setupInstall() {
   const toastEl = $('#install-toast');
+  const hide = () => { if (toastEl) toastEl.hidden = true; };
+  const dismissed = () => { try { return localStorage.getItem(INSTALL_DISMISS_KEY) === '1'; } catch { return false; } };
+
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredInstall = e;
-    if (toastEl) toastEl.hidden = false;
+    if (toastEl && !dismissed()) toastEl.hidden = false;
   });
-  $('#install-btn')?.addEventListener('click', async () => {
-    if (!deferredInstall) { toastEl.hidden = true; return; }
+  $('#install-btn')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!deferredInstall) { hide(); return; }
     deferredInstall.prompt();
     await deferredInstall.userChoice;
     deferredInstall = null;
-    toastEl.hidden = true;
+    hide();
   });
-  $('#install-dismiss')?.addEventListener('click', () => { if (toastEl) toastEl.hidden = true; });
-  window.addEventListener('appinstalled', () => { if (toastEl) toastEl.hidden = true; toast('Installed! Play offline anytime 🥟'); });
+  // Dismiss: close the card and remember the choice so it stays closed.
+  $('#install-dismiss')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hide();
+    try { localStorage.setItem(INSTALL_DISMISS_KEY, '1'); } catch {}
+  });
+  window.addEventListener('appinstalled', () => { hide(); toast('Installed! Play offline anytime 🥟'); });
 }
 
 /* ============================================================
