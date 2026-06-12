@@ -15,6 +15,12 @@ A running record of what has been built and changed. Most recent at the top.
 
 ## Changelog
 
+### 2026-06-12 — Install prompt moved to a bottom action bar (no overlap)
+- Install prompt is now a **full-width bar pinned to the very bottom**, below the menu.
+- Added `body.has-install` which applies bottom padding to the app shell, lifting the
+  content and tab bar above the bar so **nothing is ever overlapped**.
+- Bar layout: emoji + text + Install button + circular ✕, with safe-area padding.
+
 ### 2026-06-12 — Install prompt repositioned (vertical, right side) + dismiss fix
 - Moved the "Install Dumpling Math" PWA prompt to a **vertical card pinned to the right
   edge**, vertically centered, so it no longer overlaps the top bar or the bottom tab bar.

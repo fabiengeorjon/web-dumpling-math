@@ -672,13 +672,14 @@ let deferredInstall = null;
 const INSTALL_DISMISS_KEY = 'dumpling-math:install-dismissed';
 function setupInstall() {
   const toastEl = $('#install-toast');
-  const hide = () => { if (toastEl) toastEl.hidden = true; };
+  const hide = () => { if (toastEl) toastEl.hidden = true; document.body.classList.remove('has-install'); };
+  const show = () => { if (toastEl) { toastEl.hidden = false; document.body.classList.add('has-install'); } };
   const dismissed = () => { try { return localStorage.getItem(INSTALL_DISMISS_KEY) === '1'; } catch { return false; } };
 
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredInstall = e;
-    if (toastEl && !dismissed()) toastEl.hidden = false;
+    if (!dismissed()) show();
   });
   $('#install-btn')?.addEventListener('click', async (e) => {
     e.stopPropagation();
