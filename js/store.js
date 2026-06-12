@@ -128,7 +128,14 @@ export function unlockDumpling(p, id) {
 }
 export function growDumpling(p, id, by = 0.06) {
   if (p.dumplings[id]) {
-    p.dumplings[id].size = Math.min(2.2, (p.dumplings[id].size || 1) + by);
+    p.dumplings[id].size = Math.min(2.6, (p.dumplings[id].size || 1) + by);
+    save();
+  }
+}
+/** Persist an exact size (used by the sandbox when a dumpling eats). */
+export function setDumplingSize(p, id, size) {
+  if (p.dumplings[id]) {
+    p.dumplings[id].size = Math.max(1, Math.min(2.6, size));
     save();
   }
 }

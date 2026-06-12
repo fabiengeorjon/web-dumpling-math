@@ -58,3 +58,35 @@ export const sfx = {
 export function physicsSound(name) {
   if (sfx[name]) sfx[name]();
 }
+
+/* ---------- Per-dumpling squish sound ----------
+   Each dumpling gets a stable, distinct pitch from a pleasant
+   pentatonic-ish scale, with a quick downward "boing" so it
+   reads as squishy. */
+const SQUISH_NOTES = [330, 370, 392, 440, 494, 523, 587, 659, 698, 784, 880, 988, 1047, 1175];
+
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+export function squishSound(seed) {
+  if (!enabled) return;
+  const a = ac(); if (!a) return;
+  const f = SQUISH_NOTES[hashStr(String(seed)) % SQUISH_NOTES.length];
+  // primary squish: a soft sine that bends down then springs back up
+  const o = a.createOscillator();
+  const g = a.createGain();
+  o.type = 'sine';
+  const t0 = a.currentTime;
+  o.frequency.setValueAtTime(f, t0);
+  o.frequency.exponentialRampToValueAtTime(f * 0.55, t0 + 0.07);
+  o.frequency.exponentialRampToValueAtTime(f * 0.95, t0 + 0.18);
+  g.gain.setValueAtTime(0.14, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+  o.connect(g); g.connect(a.destination);
+  o.start(t0); o.stop(t0 + 0.24);
+  // a little high "pop" sparkle layered on top
+  tone(f * 2, 0.05, 'triangle', 0.04);
+}

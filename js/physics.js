@@ -7,6 +7,10 @@
 
 import { drawDumpling } from './dumpling.js';
 
+const BASE_R = 28;       // radius at size 1
+const SIZE_CAP = 2.6;    // max growth
+const GROW_STEP = 0.16;  // growth per snack eaten
+
 export class Sandbox {
   constructor(canvas, callbacks = {}) {
     this.canvas = canvas;
@@ -61,11 +65,12 @@ export class Sandbox {
   }
 
   /* ---------- Spawning ---------- */
-  spawnDumpling(d, sizeLevel = 1) {
-    const r = 26 + sizeLevel * 8;
+  spawnDumpling(d, size = 1) {
+    const s = Math.max(1, Math.min(SIZE_CAP, size || 1));
+    const r = BASE_R * s;
     this.bodies.push({
       kind: 'dumpling',
-      d, sizeLevel,
+      d, size: s,
       x: 30 + Math.random() * (this.W - 60),
       y: -r - Math.random() * 120,
       vx: (Math.random() - 0.5) * 120, vy: 0,
@@ -130,7 +135,14 @@ export class Sandbox {
     if (best) {
       this.dragged = best;
       best.grabbed = true;
-      if (best.kind === 'dumpling') { best.expr = 'drag'; best.exprTimer = 0.4; }
+      // squish on press + a poke reaction
+      best.squishX = 1.32; best.squishY = 0.72; best.squishVX = 0; best.squishVY = 0;
+      if (best.kind === 'dumpling') {
+        best.expr = 'drag'; best.exprTimer = 0.5;
+        if (this.cb.onPoke) this.cb.onPoke(best.d);
+      } else if (this.cb.onSound) {
+        this.cb.onSound('pop');
+      }
       this.pointerHist = [{ x: p.x, y: p.y, t: performance.now() }];
     }
     this._ensureRun();
@@ -375,14 +387,13 @@ export class Sandbox {
     const idx = this.bodies.indexOf(snk);
     if (idx === -1) return;
     this.bodies.splice(idx, 1);
-    // grow
-    dump.sizeLevel = Math.min(8, dump.sizeLevel + 0.5);
-    const target = 26 + dump.sizeLevel * 8;
-    dump.r = target; dump.mass = dump.r * dump.r;
+    // grow (persisted exactly so it survives leaving the tab)
+    dump.size = Math.min(SIZE_CAP, (dump.size || 1) + GROW_STEP);
+    dump.r = BASE_R * dump.size; dump.mass = dump.r * dump.r;
     dump.expr = 'eat'; dump.exprTimer = 0.6;
-    dump.squishX = 1.25; dump.squishY = 0.8;
+    dump.squishX = 1.3; dump.squishY = 0.74; dump.squishVX = 0; dump.squishVY = 0;
     if (this.cb.onSound) this.cb.onSound('munch');
-    if (this.cb.onEat) this.cb.onEat(dump.d.id, { x: dump.x, y: dump.y });
+    if (this.cb.onEat) this.cb.onEat(dump.d.id, dump.size, { x: dump.x, y: dump.y });
   }
 
   _animFace(b, dt) {

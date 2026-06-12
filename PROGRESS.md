@@ -15,6 +15,18 @@ A running record of what has been built and changed. Most recent at the top.
 
 ## Changelog
 
+### 2026-06-12 — Persistent feeding, squishier design, press-to-squish sounds
+- **Feeding now persists.** Eating in the sandbox stores the dumpling's exact size
+  (`store.setDumplingSize`), spawns at the saved fractional size, and the save is flushed
+  (`saveNow`) when leaving the Sandbox tab — growth survives navigation/closing.
+- **Squishier dumpling art.** Rewrote the canvas body: plump, bottom-heavy silhouette with a
+  scalloped/pleated crown, pleat creases, translucent bottom shading, soft rim shadow and a
+  jelly sheen. Matching scalloped SVG thumbnail for the collection/Hall of Fame.
+- **Press to squish + unique sound.** Pressing a dumpling squishes it and plays a distinct
+  "boing" pitched per-dumpling (stable hash → pentatonic note) via `squishSound`; the
+  physics `_down` handler triggers the squish + `onPoke` callback.
+- Size model unified: `BASE_R × size`, cap 2.6, +0.16 per snack. Cache bumped to `v4`.
+
 ### 2026-06-12 — Hall of Fame + mastery-exclusive dumplings
 - New **Hall of Fame** card on Home: total **👑 crowns / 30 levels** with a progress bar and
   a row of special-dumpling slots (earned thumbnails vs locked silhouettes with hints).

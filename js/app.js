@@ -12,7 +12,7 @@ import { generateQuestion, buildHint } from './math.js';
 import { dumplingSVG } from './dumpling.js';
 import { Sandbox } from './physics.js';
 import { initFx, confetti, bubbles, starPop } from './particles.js';
-import { sfx, physicsSound } from './sound.js';
+import { sfx, physicsSound, squishSound } from './sound.js';
 import { submitScore, fetchTop, brainPoints, firstName } from './leaderboard.js';
 
 const app = document.getElementById('app');
@@ -51,9 +51,10 @@ const view = { screen: 'lobby', tab: 'home', marketTab: 'snacks', rarityFilter: 
 let sandbox = null;
 
 function render() {
-  // tear down sandbox if we navigate away
+  // tear down sandbox if we navigate away (flush any feeding progress first)
   if (sandbox && !(view.screen === 'main' && view.tab === 'sandbox')) {
     sandbox.destroy(); sandbox = null;
+    store.saveNow();
   }
   if (view.screen === 'lobby') return renderLobby();
   if (view.screen === 'quiz') return renderQuiz();
@@ -790,16 +791,17 @@ function renderSandbox(screen, p) {
   requestAnimationFrame(() => {
     sandbox = new Sandbox(canvas, {
       onSound: (n) => physicsSound(n),
-      onEat: (id, pos) => {
-        store.growDumpling(p, id, 0.05);
+      onPoke: (d) => squishSound(d.id),
+      onEat: (id, size, pos) => {
+        store.setDumplingSize(p, id, size); // persisted — survives leaving the tab
         starPop((window.innerWidth / 2), pos ? pos.y : window.innerHeight / 2, 8);
       },
       onPlaced: () => refreshTools(),
     });
-    // spawn owned dumplings
+    // spawn owned dumplings at their saved (fractional) size
     Object.entries(p.dumplings).forEach(([id, info], i) => {
       const d = DUMPLING_BY_ID[id];
-      if (d) setTimeout(() => sandbox.spawnDumpling(d, Math.round(info.size || 1)), i * 160);
+      if (d) setTimeout(() => sandbox.spawnDumpling(d, info.size || 1), i * 160);
     });
     hideHintSoon();
   });
@@ -855,7 +857,7 @@ function buildTools(toolbar, p) {
 function respawn(p) {
   Object.entries(p.dumplings).forEach(([id, info], i) => {
     const d = DUMPLING_BY_ID[id];
-    if (d) setTimeout(() => sandbox.spawnDumpling(d, Math.round(info.size || 1)), i * 120);
+    if (d) setTimeout(() => sandbox.spawnDumpling(d, info.size || 1), i * 120);
   });
 }
 

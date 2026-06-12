@@ -26,39 +26,74 @@ export function drawDumpling(ctx, x, y, r, d, opts = {}) {
   ctx.scale(sx, sy);
   ctx.rotate((opts.rot ?? 0) + wob * 0.2);
 
-  // ----- body -----
-  const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.4, r * 0.2, 0, 0, r * 1.15);
+  // ----- body fill: bottom-heavy, plump, jelly-like -----
+  const grad = ctx.createRadialGradient(-r * 0.32, -r * 0.5, r * 0.15, 0, r * 0.1, r * 1.25);
   if (d.rainbow) {
     const hue = (t * 40) % 360;
-    grad.addColorStop(0, `hsl(${hue}, 100%, 92%)`);
-    grad.addColorStop(0.6, `hsl(${(hue + 60) % 360}, 90%, 80%)`);
+    grad.addColorStop(0, `hsl(${hue}, 100%, 94%)`);
+    grad.addColorStop(0.55, `hsl(${(hue + 60) % 360}, 92%, 82%)`);
     grad.addColorStop(1, `hsl(${(hue + 140) % 360}, 85%, 70%)`);
   } else {
-    grad.addColorStop(0, d.c1);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.28, d.c1);
     grad.addColorStop(1, d.c2);
   }
 
-  // soft drop shadow
+  // soft contact shadow on the floor
   ctx.beginPath();
-  ctx.ellipse(0, r * 0.9, r * 0.8, r * 0.22, 0, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(120,90,150,0.12)';
+  ctx.ellipse(0, r * 1.0, r * 0.82, r * 0.2, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(120,90,150,0.13)';
   ctx.fill();
 
-  // pleated dumpling body (rounded top, little pleats)
+  // squishy pleated dumpling body
   bodyPath(ctx, r);
+  ctx.save();
+  // a faint rim for definition
+  ctx.shadowColor = 'rgba(120,90,150,0.18)';
+  ctx.shadowBlur = r * 0.18;
+  ctx.shadowOffsetY = r * 0.06;
   ctx.fillStyle = grad;
   ctx.fill();
+  ctx.restore();
 
-  // glossy highlight
+  // inner bottom shading to look plump & translucent
+  ctx.save();
+  bodyPath(ctx, r);
+  ctx.clip();
+  const shade = ctx.createLinearGradient(0, r * 0.2, 0, r * 1.05);
+  shade.addColorStop(0, 'rgba(0,0,0,0)');
+  shade.addColorStop(1, 'rgba(90,60,120,0.16)');
+  ctx.fillStyle = shade;
+  ctx.fillRect(-r * 1.2, -r * 1.2, r * 2.4, r * 2.4);
+
+  // pleat creases fanning from the top
+  ctx.strokeStyle = 'rgba(120,90,150,0.16)';
+  ctx.lineWidth = r * 0.045;
+  ctx.lineCap = 'round';
+  for (let i = -2; i <= 2; i++) {
+    const topX = i * r * 0.3;
+    ctx.beginPath();
+    ctx.moveTo(topX, -r * 0.92);
+    ctx.quadraticCurveTo(topX * 1.2, -r * 0.4, topX * 0.6, -r * 0.1);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // big glossy highlight (top-left) — the squishy sheen
   ctx.beginPath();
-  ctx.ellipse(-r * 0.32, -r * 0.42, r * 0.34, r * 0.22, -0.5, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.ellipse(-r * 0.34, -r * 0.46, r * 0.36, r * 0.24, -0.5, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fill();
+  // small secondary sparkle
+  ctx.beginPath();
+  ctx.ellipse(r * 0.28, -r * 0.18, r * 0.12, r * 0.08, -0.4, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
   ctx.fill();
 
   // mythic shimmer ring
   if (d.glow) {
     ctx.beginPath();
-    ctx.arc(0, 0, r * 1.04, 0, Math.PI * 2);
+    ctx.arc(0, 0, r * 1.06, 0, Math.PI * 2);
     ctx.strokeStyle = `rgba(255,255,255,${0.35 + Math.sin(t * 3) * 0.2})`;
     ctx.lineWidth = r * 0.07;
     ctx.stroke();
@@ -69,13 +104,20 @@ export function drawDumpling(ctx, x, y, r, d, opts = {}) {
 }
 
 function bodyPath(ctx, r) {
-  // a rounded dumpling: circle with a slightly flat, pleated crown
+  // A plump, bottom-heavy dumpling with a softly scalloped (pleated) crown.
   ctx.beginPath();
-  ctx.moveTo(-r, 0);
-  ctx.bezierCurveTo(-r, -r * 0.95, -r * 0.55, -r * 1.12, 0, -r * 1.05);
-  ctx.bezierCurveTo(r * 0.55, -r * 1.12, r, -r * 0.95, r, 0);
-  ctx.bezierCurveTo(r, r * 0.62, r * 0.62, r, 0, r);
-  ctx.bezierCurveTo(-r * 0.62, r, -r, r * 0.62, -r, 0);
+  ctx.moveTo(-r, r * 0.12);
+  // left shoulder up to the crown
+  ctx.bezierCurveTo(-r, -r * 0.62, -r * 0.86, -r * 0.92, -r * 0.52, -r * 0.9);
+  // three little pleat bumps across the top
+  ctx.quadraticCurveTo(-r * 0.34, -r * 1.04, -r * 0.17, -r * 0.9);
+  ctx.quadraticCurveTo(0, -r * 1.05, r * 0.17, -r * 0.9);
+  ctx.quadraticCurveTo(r * 0.34, -r * 1.04, r * 0.52, -r * 0.9);
+  // right shoulder down
+  ctx.bezierCurveTo(r * 0.86, -r * 0.92, r, -r * 0.62, r, r * 0.12);
+  // plump rounded bottom
+  ctx.bezierCurveTo(r, r * 0.78, r * 0.62, r * 1.06, 0, r * 1.06);
+  ctx.bezierCurveTo(-r * 0.62, r * 1.06, -r, r * 0.78, -r, r * 0.12);
   ctx.closePath();
 }
 
@@ -192,9 +234,9 @@ export function dumplingSVG(d, size = 100) {
        </circle>` : '';
   return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
     <defs>${fill}</defs>
-    <ellipse cx="50" cy="86" rx="30" ry="7" fill="#7a5a96" opacity="0.12"/>
-    <path d="M8 50 C8 16 28 6 50 8 C72 6 92 16 92 50 C92 74 74 92 50 92 C26 92 8 74 8 50 Z" fill="url(#${id})"/>
-    <ellipse cx="36" cy="34" rx="13" ry="8" fill="#fff" opacity="0.45"/>
+    <ellipse cx="50" cy="90" rx="30" ry="6.5" fill="#7a5a96" opacity="0.12"/>
+    <path d="M10 56 C10 28 22 14 36 16 Q43 5 50 15 Q57 5 64 16 C78 14 90 28 90 56 C90 80 72 95 50 95 C28 95 10 80 10 56 Z" fill="url(#${id})"/>
+    <ellipse cx="36" cy="36" rx="13" ry="8" fill="#fff" opacity="0.5"/>
     ${glow}
     <circle cx="30" cy="56" r="6.5" fill="${d.cheek}" opacity="0.5"/>
     <circle cx="70" cy="56" r="6.5" fill="${d.cheek}" opacity="0.5"/>
