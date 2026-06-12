@@ -8,9 +8,11 @@ export const RARITIES = {
   rare:     { name: 'Rare',     color: '#5cb6ff', weight: 14, value: 60,  steamChance: 0.14 },
   epic:     { name: 'Epic',     color: '#b78bff', weight: 7,  value: 150, steamChance: 0.07 },
   mythic:   { name: 'Mythic',   color: '#ff8fd0', weight: 3,  value: 400, steamChance: 0.03 },
+  // Earned only through mastery — never rolled from a basket (weight 0).
+  master:   { name: 'Master',   color: '#ffb700', weight: 0,  value: 500, steamChance: 0 },
 };
 
-export const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'mythic'];
+export const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'mythic', 'master'];
 
 /* Each dumpling: id, name, rarity, two-tone body colors, cheek color, expression mood.
    `glow` flags the mythic shimmer treatment. */
@@ -49,12 +51,31 @@ export const DUMPLINGS = [
   { id: 'solar_flare',  name: 'Solar Flare',  rarity: 'mythic',   c1: '#ffeac2', c2: '#ff8a2a', cheek: '#ff5e2a', mood: 'happy',    glow: true },
   { id: 'rainbow_uni',  name: 'Rainbow Unicorn', rarity: 'mythic',c1: '#ffe6f5', c2: '#ff9ed8', cheek: '#a6e0ff', mood: 'silly',    glow: true, rainbow: true },
   { id: 'omni_overlord',name: 'Omnipresent Overlord', rarity: 'mythic', c1: '#e8e4ff', c2: '#6a4fff', cheek: '#ffd23f', mood: 'surprised', glow: true, rainbow: true },
+
+  // ----- Master (mastery-exclusive rewards, never from baskets) -----
+  { id: 'plus_paragon',  name: 'Plus Paragon',  rarity: 'master', c1: '#fff0d6', c2: '#ff9ec4', cheek: '#ff6fa5', mood: 'happy',     glow: true, exclusive: true },
+  { id: 'minus_maestro', name: 'Minus Maestro', rarity: 'master', c1: '#dff0ff', c2: '#5fb0f5', cheek: '#3a8fe0', mood: 'calm',      glow: true, exclusive: true },
+  { id: 'times_titan',   name: 'Times Titan',   rarity: 'master', c1: '#efe6ff', c2: '#a98bff', cheek: '#8a6fe0', mood: 'surprised', glow: true, exclusive: true },
+  { id: 'divide_diva',   name: 'Divide Diva',   rarity: 'master', c1: '#d9ffe9', c2: '#4fd0a0', cheek: '#2bb98a', mood: 'silly',     glow: true, exclusive: true },
+  { id: 'algebra_ace',   name: 'Algebra Ace',   rarity: 'master', c1: '#fff0cc', c2: '#ffae3f', cheek: '#ff8a2a', mood: 'happy',     glow: true, exclusive: true },
+  { id: 'grandmaster',   name: 'Grandmaster Glow', rarity: 'master', c1: '#ffe6f5', c2: '#b06fff', cheek: '#ffd23f', mood: 'surprised', glow: true, exclusive: true, rainbow: true },
 ];
 
 export const DUMPLING_BY_ID = Object.fromEntries(DUMPLINGS.map(d => [d.id, d]));
 
 /* Starter dumpling everyone owns. */
 export const STARTER_DUMPLING = 'baby_bao';
+
+/* Mastery rewards: master all levels of a skill to earn its dumpling;
+   master every skill to earn the Grandmaster. */
+export const MASTER_DUMPLING_BY_SKILL = {
+  add: 'plus_paragon',
+  sub: 'minus_maestro',
+  mul: 'times_titan',
+  div: 'divide_diva',
+  alg: 'algebra_ace',
+};
+export const GRANDMASTER_DUMPLING = 'grandmaster';
 
 export const STEAM_COST = 40;
 

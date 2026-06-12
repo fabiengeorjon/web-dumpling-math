@@ -15,6 +15,18 @@ A running record of what has been built and changed. Most recent at the top.
 
 ## Changelog
 
+### 2026-06-12 — Hall of Fame + mastery-exclusive dumplings
+- New **Hall of Fame** card on Home: total **👑 crowns / 30 levels** with a progress bar and
+  a row of special-dumpling slots (earned thumbnails vs locked silhouettes with hints).
+- Added **6 mastery-exclusive dumplings** (new "Master" rarity, gold): one per skill
+  (Plus Paragon, Minus Maestro, Times Titan, Divide Diva, Algebra Ace) earned by mastering
+  all 6 of that skill's levels, plus the rainbow **Grandmaster Glow** for 100% mastery.
+- These are **never obtainable from baskets** (gacha excludes `exclusive` dumplings).
+- Earning one triggers a dedicated gold reveal (chained if several), shown right after the
+  results screen; the results banner teases "a special buddy unlocked".
+- Collection shows them under a new **Master** filter with a 👑 locked state + mastery hint.
+- Cache bumped to `v3`.
+
 ### 2026-06-12 — Best score per level + ★★★ Mastery badges
 - Tracks **best score** and a **mastered** flag (perfect 8/8) per skill per level in
   `profile.levelStats` (`store.recordLevelResult` / `getLevelStat` / `masteredCount`).

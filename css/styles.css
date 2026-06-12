@@ -234,6 +234,34 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 .section-title { font-family: var(--font-display); font-weight: 800; font-size: 1.1rem; margin: 18px 4px 10px; }
 
+/* ---------- Hall of Fame ---------- */
+.hof-card {
+  background: linear-gradient(140deg, #fff, #fff6db);
+  border-radius: var(--radius-xl); padding: 16px 18px; box-shadow: var(--shadow-soft);
+}
+.hof-card.complete { background: linear-gradient(140deg, #fff6db, #ffe6f5); box-shadow: var(--shadow-soft), 0 0 0 2px #ffcf4d inset; }
+.hof-top { display: flex; align-items: center; justify-content: space-between; }
+.hof-crowns { font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; }
+.hof-crowns small { color: var(--c-ink-soft); font-weight: 700; font-size: .72rem; }
+.hof-pct { font-family: var(--font-display); font-weight: 800; color: #d9920a; }
+.hof-bar { height: 12px; background: #f1e7d2; border-radius: var(--radius-pill); margin: 8px 0 12px; overflow: hidden; }
+.hof-bar span { display: block; height: 100%; border-radius: var(--radius-pill); background: linear-gradient(90deg, #ffe08a, #ffb700); transition: width .6s var(--ease-spring); }
+.hof-dumps { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.hof-dumps::-webkit-scrollbar { display: none; }
+.hof-cell {
+  flex-shrink: 0; width: 70px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  transition: transform .14s var(--ease-spring);
+}
+.hof-cell:active { transform: scale(.92); }
+.hof-cell .hof-thumb { width: 54px; height: 54px; }
+.hof-cell .hof-lock {
+  width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; font-size: 22px;
+  background: repeating-linear-gradient(45deg, #f4eef8, #f4eef8 6px, #efe7f5 6px, #efe7f5 12px);
+  box-shadow: 0 0 0 2px #ffcf4d inset;
+}
+.hof-cell small { font-size: .58rem; font-weight: 800; color: var(--c-ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70px; }
+
 .skill-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 .skill-card {
   border-radius: var(--radius-lg); padding: 18px 16px; color: #fff;

@@ -6,6 +6,7 @@ import * as store from './store.js';
 import {
   SKILLS, SKILL_BY_ID, DUMPLINGS, DUMPLING_BY_ID, RARITIES, RARITY_ORDER,
   SNACKS, TOYS, TOY_BY_ID, SNACK_BY_ID, AVATARS, AVATAR_COLORS, STEAM_COST,
+  MASTER_DUMPLING_BY_SKILL, GRANDMASTER_DUMPLING,
 } from './data.js';
 import { generateQuestion, buildHint } from './math.js';
 import { dumplingSVG } from './dumpling.js';
@@ -244,6 +245,40 @@ function renderHome(screen, p) {
       </div>
     </div>`));
 
+  // ----- Hall of Fame -----
+  const totalLevels = SKILLS.length * MAX_TIER;
+  const totalMastered = SKILLS.reduce((s, sk) => s + store.masteredCount(p, sk.id), 0);
+  const hofPct = Math.round((totalMastered / totalLevels) * 100);
+  body.appendChild(h(`<div class="section-title">👑 Hall of Fame</div>`));
+  const hof = h(`
+    <div class="hof-card ${totalMastered === totalLevels ? 'complete' : ''}">
+      <div class="hof-top">
+        <div class="hof-crowns">👑 <b>${totalMastered}</b> <small>/ ${totalLevels} levels mastered</small></div>
+        <div class="hof-pct">${hofPct}%</div>
+      </div>
+      <div class="hof-bar"><span style="width:${hofPct}%"></span></div>
+      <div class="hof-dumps"></div>
+    </div>`);
+  const hofDumps = $('.hof-dumps', hof);
+  const specials = SKILLS.map(sk => ({ id: MASTER_DUMPLING_BY_SKILL[sk.id], hint: `Master all ${MAX_TIER} ${sk.name} levels to earn this buddy!` }))
+    .concat([{ id: GRANDMASTER_DUMPLING, hint: 'Master every level in every skill to earn the Grandmaster! 🌈' }]);
+  specials.forEach(sp => {
+    const d = DUMPLING_BY_ID[sp.id];
+    const owned = !!p.dumplings[sp.id];
+    const cell = h(`
+      <div class="hof-cell ${owned ? 'owned' : 'locked'}" title="${escapeHtml(d.name)}">
+        ${owned ? `<div class="hof-thumb">${dumplingSVG(d, 54)}</div>` : `<div class="hof-lock">🔒</div>`}
+        <small>${owned ? escapeHtml(d.name) : '???'}</small>
+      </div>`);
+    cell.addEventListener('click', () => {
+      sfx.tap();
+      if (owned) dumplingDetail(d, p.dumplings[sp.id]);
+      else toast(sp.hint);
+    });
+    hofDumps.appendChild(cell);
+  });
+  body.appendChild(hof);
+
   body.appendChild(h(`<div class="section-title">Choose a challenge ✨</div>`));
   const grid = h(`<div class="skill-grid"></div>`);
   const cls = { add: 'add', sub: 'sub', mul: 'mul', div: 'div', alg: 'alg' };
@@ -444,6 +479,46 @@ function nextQuestion() {
 
 const MASTER_BONUS = 30;
 
+/** Unlock any mastery-exclusive dumplings the player has just earned. */
+function checkMasteryRewards(p) {
+  const newly = [];
+  for (const s of SKILLS) {
+    const id = MASTER_DUMPLING_BY_SKILL[s.id];
+    if (store.masteredCount(p, s.id) >= MAX_TIER && !p.dumplings[id]) {
+      store.unlockDumpling(p, id); newly.push(id);
+    }
+  }
+  const allMastered = SKILLS.every(s => store.masteredCount(p, s.id) >= MAX_TIER);
+  if (allMastered && !p.dumplings[GRANDMASTER_DUMPLING]) {
+    store.unlockDumpling(p, GRANDMASTER_DUMPLING); newly.push(GRANDMASTER_DUMPLING);
+  }
+  return newly;
+}
+
+/** Show earned mastery dumplings one-by-one, then call done(). */
+function showMasteryReveals(ids, done) {
+  let i = 0;
+  const next = () => {
+    if (i >= ids.length) { done(); return; }
+    const d = DUMPLING_BY_ID[ids[i]];
+    const isGrand = d.id === GRANDMASTER_DUMPLING;
+    i++;
+    sfx.reveal(); confetti(); bubbles();
+    const last = i >= ids.length;
+    const modal = h(`
+      <div class="modal" style="text-align:center">
+        <div class="reveal-rarity" style="color:#ffb700">${isGrand ? '👑 GRANDMASTER 👑' : '★ MASTER REWARD ★'}</div>
+        <div class="reveal-dump">${dumplingSVG(d, 150)}</div>
+        <div class="reveal-name">${d.name}</div>
+        <p style="font-weight:700;color:var(--c-ink-soft);margin-top:6px">${isGrand ? 'You mastered EVERY level in EVERY skill. Legendary! 🌈' : 'A special buddy earned only by mastery!'}</p>
+        <div class="modal-actions"><button class="btn btn-primary btn-block" id="mr-next">${last ? 'Awesome! 🎉' : 'Next →'}</button></div>
+      </div>`);
+    $('#mr-next', modal).addEventListener('click', () => { sfx.tap(); closeModal(); next(); });
+    openModal(modal);
+  };
+  next();
+}
+
 function finishQuiz() {
   const p = store.getActive();
   const stars = Math.round((quiz.correctCount / QUIZ_LEN) * 3);
@@ -451,6 +526,8 @@ function finishQuiz() {
   // Record best score & mastery for this level.
   const lvlRes = store.recordLevelResult(p, quiz.skillId, quiz.tier, quiz.correctCount, QUIZ_LEN);
   if (lvlRes.justMastered) { store.addCoins(p, MASTER_BONUS); quiz.coinsEarned += MASTER_BONUS; }
+  // Any mastery-exclusive dumplings earned this round?
+  const rewards = checkMasteryRewards(p);
 
   // Clearing the *challenge* level (not a replay) unlocks the next one.
   const wasChallenge = !quiz.isReplay && quiz.tier === (p.skillLevels[quiz.skillId] || 1);
@@ -474,6 +551,8 @@ function finishQuiz() {
           : ''));
   const bestNote = lvlRes.newBest && !lvlRes.justMastered
     ? `<p style="font-weight:700;color:var(--c-mint-deep);margin-top:2px">⭐ New best for Level ${quiz.tier}!</p>` : '';
+  const rewardNote = rewards.length
+    ? `<p style="font-weight:800;color:#d9920a;margin-top:4px">🎁 ${rewards.includes(GRANDMASTER_DUMPLING) ? 'GRANDMASTER buddy' : 'A special buddy'} unlocked — tap to see!</p>` : '';
 
   const modal = h(`
     <div class="modal" style="text-align:center">
@@ -484,6 +563,7 @@ function finishQuiz() {
       <div class="price-tag" style="margin:6px auto 0">${coinDot} +${quiz.coinsEarned} coins</div>
       ${banner}
       ${bestNote}
+      ${rewardNote}
       <div class="modal-actions">
         <button class="btn btn-ghost" id="fq-home">Home</button>
         ${unlocked ? `<button class="btn btn-mint" id="fq-next">Next Level →</button>` : ''}
@@ -491,15 +571,16 @@ function finishQuiz() {
       </div>
     </div>`);
   const skill = quiz.skillId, tier = quiz.tier;
-  $('#fq-home', modal).addEventListener('click', () => { sfx.tap(); closeModal(); quiz = null; view.screen = 'main'; render(); });
-  $('#fq-again', modal).addEventListener('click', () => {
-    sfx.tap(); closeModal();
+  // Show any earned mastery dumplings before navigating onward.
+  const proceed = (action) => { sfx.tap(); closeModal(); if (rewards.length) showMasteryReveals(rewards, action); else action(); };
+  $('#fq-home', modal).addEventListener('click', () => proceed(() => { quiz = null; view.screen = 'main'; render(); }));
+  $('#fq-again', modal).addEventListener('click', () => proceed(() => {
     // recompute replay status (the challenge level may have just moved up)
     const replay = tier < (store.getActive().skillLevels[skill] || 1);
     startQuiz(skill, tier, replay);
-  });
+  }));
   const nextBtn = $('#fq-next', modal);
-  if (nextBtn) nextBtn.addEventListener('click', () => { sfx.tap(); closeModal(); startQuiz(skill, tier + 1, false); });
+  if (nextBtn) nextBtn.addEventListener('click', () => proceed(() => startQuiz(skill, tier + 1, false)));
   openModal(modal);
   if (lvlRes.justMastered) { confetti(); bubbles(); sfx.levelUp(); setTimeout(() => confetti(), 350); }
   else if (unlocked) { bubbles(); sfx.levelUp(); }
@@ -575,8 +656,11 @@ function renderCollection(screen, p) {
       cell.addEventListener('click', () => { sfx.tap(); dumplingDetail(d, owned); });
       grid.appendChild(cell);
     } else {
-      const cell = h(`<div class="dump-cell locked"><span class="lock-ic">🔒</span><span class="rarity-dot" style="background:${r.color}"></span></div>`);
-      cell.addEventListener('click', () => { sfx.tap(); toast(`${r.name} dumpling — steam a basket to unlock!`); });
+      const cell = h(`<div class="dump-cell locked"><span class="lock-ic">${d.exclusive ? '👑' : '🔒'}</span><span class="rarity-dot" style="background:${r.color}"></span></div>`);
+      const hint = d.exclusive
+        ? 'Master math levels to earn this special dumpling! 👑'
+        : `${r.name} dumpling — steam a basket to unlock!`;
+      cell.addEventListener('click', () => { sfx.tap(); toast(hint); });
       grid.appendChild(cell);
     }
   });
@@ -599,9 +683,10 @@ function dumplingDetail(d, owned) {
 }
 
 function weightedRandomDumpling(p) {
-  // bias toward unowned; fall back to any
-  const unowned = DUMPLINGS.filter(d => !p.dumplings[d.id]);
-  const pool = unowned.length ? unowned : DUMPLINGS;
+  // bias toward unowned; never include mastery-exclusive dumplings
+  const rollable = DUMPLINGS.filter(d => !d.exclusive);
+  const unowned = rollable.filter(d => !p.dumplings[d.id]);
+  const pool = unowned.length ? unowned : rollable;
   const total = pool.reduce((s, d) => s + RARITIES[d.rarity].weight, 0);
   let roll = Math.random() * total;
   for (const d of pool) { roll -= RARITIES[d.rarity].weight; if (roll <= 0) return d; }
