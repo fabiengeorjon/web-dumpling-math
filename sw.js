@@ -5,7 +5,7 @@
    cache-first for everything else.
    ============================================================ */
 
-const CACHE = 'dumpling-math-v4';
+const CACHE = 'dumpling-math-v5';
 
 const ASSETS = [
   './',

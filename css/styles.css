@@ -477,6 +477,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .tool-btn.active { background: linear-gradient(180deg, var(--c-lilac), var(--c-lilac-deep)); color: #fff; }
 .tool-btn.disabled { opacity: .4; pointer-events: none; }
 
+/* ---------- floating points (tickle reward) ---------- */
+.float-pts {
+  position: fixed; z-index: 96; pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.6);
+  font-family: var(--font-display); font-weight: 800; font-size: 1.15rem;
+  text-shadow: 0 2px 6px rgba(255,255,255,0.8), 0 1px 0 #fff;
+  transition: transform .82s var(--ease-spring), opacity .82s ease;
+  opacity: 1;
+}
+.float-pts.go { transform: translate(-50%, -180%) scale(1.1); opacity: 0; }
+
 /* ---------- toast ---------- */
 .toast {
   position: fixed; bottom: calc(110px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px);

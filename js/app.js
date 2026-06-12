@@ -775,7 +775,43 @@ function buyItem(p, it) {
 /* ============================================================
    SANDBOX
    ============================================================ */
+/* Occasional "tickle" reward when pressing a dumpling. Anti-spam +
+   per-visit cap keep it a delight, not a coin farm. */
+const TICKLE_CHANCE = 0.18;
+const TICKLE_CAP = 40;        // max coins per sandbox visit
+let tickleSession = 0;
+let tickleCooldown = 0;
+
+function maybeTickleReward(d, pos) {
+  const p = store.getActive();
+  if (!p || !pos) return;
+  const now = performance.now();
+  if (now - tickleCooldown < 650) return;     // anti-spam
+  tickleCooldown = now;
+  if (tickleSession >= TICKLE_CAP) return;     // per-visit cap
+  if (Math.random() > TICKLE_CHANCE) return;
+  const rIndex = RARITY_ORDER.indexOf(d.rarity) + 1; // 1..6
+  let coins = 1 + Math.floor(Math.random() * (1 + rIndex));
+  coins = Math.min(coins, TICKLE_CAP - tickleSession);
+  if (coins <= 0) return;
+  tickleSession += coins;
+  store.addCoins(p, coins);
+  updateCoinsUI(p);
+  sfx.coin();
+  floatText(pos.x, pos.y, `+${coins} 🪙`);
+  starPop(pos.x, pos.y, 6);
+}
+
+/** A little number that floats up and fades at a screen point. */
+function floatText(x, y, text, color = '#9a6b00') {
+  const el = h(`<div class="float-pts" style="left:${x}px;top:${y}px;color:${color}">${text}</div>`);
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('go'));
+  setTimeout(() => el.remove(), 850);
+}
+
 function renderSandbox(screen, p) {
+  tickleSession = 0; // reset the cap each visit
   const wrap = h(`
     <div class="sandbox-screen">
       <div class="sandbox-wrap">
@@ -791,7 +827,7 @@ function renderSandbox(screen, p) {
   requestAnimationFrame(() => {
     sandbox = new Sandbox(canvas, {
       onSound: (n) => physicsSound(n),
-      onPoke: (d) => squishSound(d.id),
+      onPoke: (d, pos) => { squishSound(d.id); maybeTickleReward(d, pos); },
       onEat: (id, size, pos) => {
         store.setDumplingSize(p, id, size); // persisted — survives leaving the tab
         starPop((window.innerWidth / 2), pos ? pos.y : window.innerHeight / 2, 8);

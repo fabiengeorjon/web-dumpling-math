@@ -15,6 +15,14 @@ A running record of what has been built and changed. Most recent at the top.
 
 ## Changelog
 
+### 2026-06-12 — Press-to-squish "tickle" coin reward
+- Pressing a dumpling now has an **18% chance** to drop a small coin reward (1–~7 by
+  rarity) with a floating `+N 🪙` that drifts up and fades, a sparkle and a coin chime.
+- Kept playful, not farmable: **650ms anti-spam cooldown** + **40-coin cap per sandbox
+  visit** (resets each time you open the Sandbox). Physics passes the press coordinates to
+  `onPoke`; `floatText` renders the rising number.
+- Cache bumped to `v5`.
+
 ### 2026-06-12 — Persistent feeding, squishier design, press-to-squish sounds
 - **Feeding now persists.** Eating in the sandbox stores the dumpling's exact size
   (`store.setDumplingSize`), spawns at the saved fractional size, and the save is flushed

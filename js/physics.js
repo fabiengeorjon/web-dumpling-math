@@ -139,7 +139,7 @@ export class Sandbox {
       best.squishX = 1.32; best.squishY = 0.72; best.squishVX = 0; best.squishVY = 0;
       if (best.kind === 'dumpling') {
         best.expr = 'drag'; best.exprTimer = 0.5;
-        if (this.cb.onPoke) this.cb.onPoke(best.d);
+        if (this.cb.onPoke) this.cb.onPoke(best.d, { x: e.clientX, y: e.clientY });
       } else if (this.cb.onSound) {
         this.cb.onSound('pop');
       }
